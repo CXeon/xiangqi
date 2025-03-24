@@ -1,5 +1,5 @@
 package xiangqi
 
 func main() {
-
+	
 }
