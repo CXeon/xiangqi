@@ -104,3 +104,17 @@ func (board *Chessboard) getChessman(group core.ChessmanGroup, code core.Chessma
 	}
 	return cm, nil
 }
+
+// 返回棋盘的棋子以及位置
+func (board *Chessboard) GetMatrix() [][]chessman.ChessmanInterface {
+	return board.matrix
+}
+
+// 返回棋盘上每一行对应的阵营
+func (board *Chessboard) GetRowsGroup() map[int]core.ChessmanGroup {
+	return board.rowGroup
+}
+
+func (board *Chessboard) ClearChessmen() {
+	board.matrix = initMatrix(10, 9)
+}

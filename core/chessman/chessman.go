@@ -9,7 +9,7 @@ type Chessman struct {
 	isDead            bool               //是否被吃掉
 	defaultCoordinate core.Coordinate    //默认坐标
 
-	rule func(allChessmanOnTable [][]ChessmanInterface, source, target core.Coordinate) (bool, error)
+	rule ChessRUle
 }
 
 // 创建棋子对象
@@ -55,14 +55,14 @@ func (cm *Chessman) GetIsDead() bool {
 }
 
 // 绑定棋子规则
-func (cm *Chessman) BindRule(rule func(matrix [][]ChessmanInterface, source, target core.Coordinate) (bool, error)) {
+func (cm *Chessman) BindRule(rule ChessRUle) {
 	cm.rule = rule
 }
 
 // 校验棋子移动是否符合规则
-func (cm *Chessman) CheckMove(matrix [][]ChessmanInterface, source, target core.Coordinate) (bool, error) {
+func (cm *Chessman) CheckMove(matrix [][]ChessmanInterface, rowGroup map[int]core.ChessmanGroup, source, target core.Coordinate) (bool, error) {
 	if cm.rule == nil {
 		return false, nil
 	}
-	return cm.rule(matrix, source, target)
+	return cm.rule(matrix, rowGroup, source, target)
 }

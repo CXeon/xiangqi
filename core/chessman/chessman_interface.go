@@ -2,6 +2,8 @@ package chessman
 
 import "github.com/CXeon/xiangqi/core"
 
+type ChessRUle func(matrix [][]ChessmanInterface, rowGroup map[int]core.ChessmanGroup, source, target core.Coordinate) (bool, error)
+
 type ChessmanInterface interface {
 	//获取棋子代号
 	GetChessmanCode() core.ChessmanCode
@@ -19,7 +21,7 @@ type ChessmanInterface interface {
 	GetIsDead() bool
 
 	// 绑定棋子规则
-	BindRule(rule func(matrix [][]ChessmanInterface, rowGroup map[int]core.ChessmanGroup, source, target core.Coordinate) (bool, error))
+	BindRule(rule ChessRUle)
 
 	// 校验棋子移动是否符合规则
 	CheckMove(matrix [][]ChessmanInterface, rowGroup map[int]core.ChessmanGroup, source, target core.Coordinate) (bool, error)
