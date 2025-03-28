@@ -23,11 +23,18 @@ func NewPlayer() *Player {
 }
 
 // ReceiveStatement player接收意图
-func (p *Player) ReceiveStatement(ch chan Statement) (Statement, error) {
-	if sta, ok := <-ch; ok {
+func (p *Player) ReceiveStatement(ch chan Statement, quit chan struct{}) (Statement, error) {
+
+	select {
+	case <-quit: // 优先响应退出信号
+		return Statement{}, errors.New("receive quit signal")
+	case sta, ok := <-ch: // 同时监听数据通道
+		if !ok {
+			return Statement{}, errors.New("channel is closed")
+		}
 		return sta, nil
 	}
-	return Statement{}, errors.New("channel is closed")
+
 }
 
 // SetGroup 分配阵营

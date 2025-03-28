@@ -5,11 +5,11 @@ import (
 )
 
 type PlayerInterface interface {
-	ReceiveStatement(ch chan Statement) (Statement, error) //player接收意图
-	SetGroup(group core.ChessmanGroup)                     //为玩家分配阵营
-	GetGroup() core.ChessmanGroup                          //获取玩家所属阵营
-	SetIsFirst(isFirst bool)                               //设置玩家是否是先手
-	GetIsFirst() bool                                      //获取玩家是否是先手
+	ReceiveStatement(ch chan Statement, quit chan struct{}) (Statement, error) //player接收意图,quit用来终止读取防止阻塞
+	SetGroup(group core.ChessmanGroup)                                         //为玩家分配阵营
+	GetGroup() core.ChessmanGroup                                              //获取玩家所属阵营
+	SetIsFirst(isFirst bool)                                                   //设置玩家是否是先手
+	GetIsFirst() bool                                                          //获取玩家是否是先手
 
 	/**玩家存活的棋子相关**/
 	GetOwnChessmen() ([]core.ChessmanCode, error) //获取玩家所有存活的棋子

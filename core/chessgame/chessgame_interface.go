@@ -11,9 +11,12 @@ type ChessGameInterface interface {
 	//重置棋局
 	ResetGame() error
 
-	//销毁棋局
-	Destroy() error
+	//关闭棋局
+	Close() error
 
 	//运行棋局
 	Run(downPlayerCh, upPlayerCh chan player.Statement) (msgChan <-chan GameMsg)
+
+	//打印棋局
+	Show()
 }

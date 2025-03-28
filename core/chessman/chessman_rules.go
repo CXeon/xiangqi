@@ -205,6 +205,272 @@ func RuleBingZu(matrix [][]ChessmanInterface, rowGroup map[int]core.ChessmanGrou
 	return true, nil
 }
 
+// "车"的移动规则校验
+// “车”走直线
+func RuleJu(matrix [][]ChessmanInterface, rowGroup map[int]core.ChessmanGroup, source, target core.Coordinate) (bool, error) {
+	//检查象棋的移动是否在棋盘内
+	if verifyCoordinateOnTheBoard(source) == false || verifyCoordinateOnTheBoard(target) == false {
+		return false, errors.New("invalid move")
+	}
+
+	//确定移动方向
+	moveY := target.Y - source.Y
+	moveX := target.X - source.X
+
+	vh := ""
+	if moveX == 0 && moveY > 0 {
+		vh = "UP"
+	}
+	if moveX == 0 && moveY < 0 {
+		vh = "DOWN"
+	}
+	if moveX > 0 && moveY == 0 {
+		vh = "LEFT"
+	}
+	if moveX < 0 && moveY == 0 {
+		vh = "RIGHT"
+	}
+
+	switch vh {
+	case "UP":
+		//向上移动，中间不能有其他棋子存在
+		for i := source.Y + 1; i < target.Y; i++ {
+			if matrix[i][source.X] != nil {
+				return false, errors.New("invalid move")
+			}
+		}
+	case "DOWN":
+		//向下移动，中间不能有其他棋子存在
+		for i := source.Y - 1; i > target.Y; i-- {
+			if matrix[i][source.X] != nil {
+				return false, errors.New("invalid move")
+			}
+		}
+
+	case "LEFT":
+		//向左移动，中间不能有其他棋子存在
+		for i := source.X + 1; i < target.X; i++ {
+			if matrix[source.Y][i] != nil {
+				return false, errors.New("invalid move")
+			}
+		}
+	case "RIGHT":
+		for i := source.X - 1; i > target.X; i-- {
+			if matrix[source.Y][i] != nil {
+				return false, errors.New("invalid move")
+			}
+		}
+	default:
+		return false, errors.New("invalid move")
+	}
+
+	if targetCoordinateHaveSameGroupChess(matrix, source, target) {
+		return false, errors.New("target has a chessman of the same group")
+	}
+	return true, nil
+
+}
+
+// "炮"的移动规则
+// “炮”翻山
+func RulePao(matrix [][]ChessmanInterface, rowGroup map[int]core.ChessmanGroup, source, target core.Coordinate) (bool, error) {
+	//检查象棋的移动是否在棋盘内
+	if verifyCoordinateOnTheBoard(source) == false || verifyCoordinateOnTheBoard(target) == false {
+		return false, errors.New("invalid move")
+	}
+
+	//确定移动方向
+	moveY := target.Y - source.Y
+	moveX := target.X - source.X
+
+	vh := ""
+	if moveX == 0 && moveY > 0 {
+		vh = "UP"
+	}
+	if moveX == 0 && moveY < 0 {
+		vh = "DOWN"
+	}
+	if moveX > 0 && moveY == 0 {
+		vh = "LEFT"
+	}
+	if moveX < 0 && moveY == 0 {
+		vh = "RIGHT"
+	}
+	//判定是否发生吃棋
+	if targetCoordinateHaveSameGroupChess(matrix, source, target) {
+		return false, errors.New("target has a chessman of the same group")
+	}
+	if chessman := matrix[target.Y][target.X]; chessman != nil {
+		//发生吃棋，那目标坐标和起始坐标之间必须要存在1颗棋子
+		switch vh {
+		case "UP":
+			count := 0
+			//向上移动
+			for i := source.Y + 1; i < target.Y; i++ {
+				if matrix[i][source.X] != nil {
+					count++
+				}
+			}
+			if count != 1 {
+				return false, errors.New("invalid move")
+			}
+		case "DOWN":
+			count := 0
+			//向下移动
+			for i := source.Y - 1; i > target.Y; i-- {
+				if matrix[i][source.X] != nil {
+					count++
+				}
+			}
+			if count != 1 {
+				return false, errors.New("invalid move")
+			}
+		case "LEFT":
+			count := 0
+			//向左移动
+			for i := source.X + 1; i < target.X; i++ {
+				if matrix[source.Y][i] != nil {
+					count++
+				}
+			}
+			if count != 1 {
+				return false, errors.New("invalid move")
+			}
+		case "RIGHT":
+			count := 0
+			for i := source.X - 1; i > target.X; i-- {
+				if matrix[source.Y][i] != nil {
+					count++
+				}
+			}
+			if count != 1 {
+				return false, errors.New("invalid move")
+			}
+		default:
+			return false, errors.New("invalid move")
+		}
+	}
+	if chessman := matrix[target.Y][target.X]; chessman == nil {
+		//没有发生吃棋，那目标坐标和起始坐标之间不能存在棋子
+		switch vh {
+		case "UP":
+			//向上移动，中间不能有其他棋子存在
+			for i := source.Y + 1; i < target.Y; i++ {
+				if matrix[i][source.X] != nil {
+					return false, errors.New("invalid move")
+				}
+			}
+		case "DOWN":
+			//向下移动，中间不能有其他棋子存在
+			for i := source.Y - 1; i > target.Y; i-- {
+				if matrix[i][source.X] != nil {
+					return false, errors.New("invalid move")
+				}
+			}
+
+		case "LEFT":
+			//向左移动，中间不能有其他棋子存在
+			for i := source.X + 1; i < target.X; i++ {
+				if matrix[source.Y][i] != nil {
+					return false, errors.New("invalid move")
+				}
+			}
+		case "RIGHT":
+			for i := source.X - 1; i > target.X; i-- {
+				if matrix[source.Y][i] != nil {
+					return false, errors.New("invalid move")
+				}
+			}
+		default:
+			return false, errors.New("invalid move")
+		}
+	}
+
+	return true, nil
+}
+
+// “士”的移动规则校验
+func RuleShi(matrix [][]ChessmanInterface, rowGroup map[int]core.ChessmanGroup, source, target core.Coordinate) (bool, error) {
+	//首先验证棋子是否在规定范围内活动
+	if verifyJiangShuaiOrShiInZone(matrix, rowGroup, source, target) == false {
+		return false, errors.New("invalid move")
+	}
+
+	//验证目标坐标是否存在同阵营棋子
+	if targetCoordinateHaveSameGroupChess(matrix, source, target) {
+		return false, errors.New("target has a chessman of the same group")
+	}
+
+	//确认移动方式
+	moveY := target.Y - source.Y
+	moveX := target.X - source.X
+
+	vertical := ""
+	horizontal := ""
+
+	if moveY == 1 {
+		vertical = "UP1"
+	}
+	if moveY == -1 {
+		vertical = "DOWN1"
+	}
+	if moveX == 1 {
+		vertical = "LEFT1"
+	}
+	if moveX == -1 {
+		vertical = "RIGHT1"
+	}
+
+	vh := vertical + horizontal
+
+	switch vh {
+	case "UP1LEFT1", "UP1RIGHT1", "DOWN1LEFT1", "DOWN1RIGHT1":
+		return true, nil
+	}
+	return false, errors.New("invalid move")
+}
+
+// “将/帅”的移动规则校验
+func RuleJiangShuai(matrix [][]ChessmanInterface, rowGroup map[int]core.ChessmanGroup, source, target core.Coordinate) (bool, error) {
+	//首先验证棋子是否在规定范围内活动
+	if verifyJiangShuaiOrShiInZone(matrix, rowGroup, source, target) == false {
+		return false, errors.New("invalid move")
+	}
+
+	//验证目标坐标是否存在同阵营棋子
+	if targetCoordinateHaveSameGroupChess(matrix, source, target) {
+		return false, errors.New("target has a chessman of the same group")
+	}
+
+	//确认移动方式
+	moveY := target.Y - source.Y
+	moveX := target.X - source.X
+
+	vertical := ""
+	horizontal := ""
+
+	if moveY == 1 {
+		vertical = "UP1"
+	}
+	if moveY == -1 {
+		vertical = "DOWN1"
+	}
+	if moveX == 1 {
+		vertical = "LEFT1"
+	}
+	if moveX == -1 {
+		vertical = "RIGHT1"
+	}
+
+	vh := vertical + horizontal
+
+	switch vh {
+	case "UP1", "RIGHT1", "DOWN1", "LEFT1":
+		return true, nil
+	}
+	return false, errors.New("invalid move")
+}
+
 // 目的坐标是否已经被同阵营的棋子占据
 func targetCoordinateHaveSameGroupChess(matrix [][]ChessmanInterface, source, target core.Coordinate) bool {
 
@@ -229,4 +495,42 @@ func verifyCoordinateOnTheBoard(co core.Coordinate) bool {
 		return false
 	}
 	return true
+}
+
+func verifyJiangShuaiOrShiInZone(matrix [][]ChessmanInterface, rowGroup map[int]core.ChessmanGroup, source, target core.Coordinate) bool {
+	//首先确定棋子阵营
+	chessman := matrix[source.Y][source.X]
+	if chessman.GetChessmanGroup() == rowGroup[0] {
+		//起始坐标和目标坐标都应该在棋盘下方中心的田字格
+		if source.X < 3 || source.X > 5 {
+			return false
+		}
+		if target.X < 3 || target.X > 5 {
+			return false
+		}
+
+		if source.Y < 0 || source.Y > 2 {
+			return false
+		}
+		if target.Y < 0 || target.Y > 2 {
+			return false
+		}
+		return true
+	} else {
+		//起始坐标和目标坐标都应该棋盘上方的田字格
+		if source.X < 3 || source.X > 5 {
+			return false
+		}
+		if target.X < 3 || target.X > 5 {
+			return false
+		}
+
+		if source.Y < 7 || source.Y > 9 {
+			return false
+		}
+		if target.Y < 7 || target.Y > 9 {
+			return false
+		}
+		return true
+	}
 }

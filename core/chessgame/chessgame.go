@@ -1,6 +1,7 @@
 package chessgame
 
 import (
+	"fmt"
 	"github.com/CXeon/xiangqi/core"
 	"github.com/CXeon/xiangqi/core/chessboard"
 	"github.com/CXeon/xiangqi/core/chessman"
@@ -14,6 +15,8 @@ type ChessGame struct {
 	downChessmen []chessman.ChessmanInterface   //棋子
 	upChessmen   []chessman.ChessmanInterface
 	round        int //记录当前回合执行情况 0：都没下棋，1:先手已下棋，-1:后手已下棋
+
+	quit chan struct{} //退出通道，用于随时终止棋局
 }
 
 // 初始化棋局
@@ -54,6 +57,8 @@ func (game *ChessGame) InitialGame(player1, player2 player.PlayerInterface) erro
 
 	game.downChessmen = chessmenOfPlayerDown
 	game.upChessmen = chessmenOfPlayerUp
+
+	game.quit = make(chan struct{}, 1) //初始化终止通道
 
 	//记录玩家初始拥有的棋子
 	codes1 := make([]core.ChessmanCode, len(chessmenOfPlayerDown))
@@ -108,8 +113,8 @@ func (game *ChessGame) ResetGame() error {
 	return nil
 }
 
-// 销毁棋局
-func (game *ChessGame) Destroy() error {
+// 关闭棋局
+func (game *ChessGame) Close() error {
 	game.playerDown.ClearOwnChessman()
 	game.playerDown.ClearLostChessman()
 	game.playerDown.ClearWonChessman()
@@ -121,6 +126,9 @@ func (game *ChessGame) Destroy() error {
 	game.board = nil
 	game.downChessmen = nil
 	game.upChessmen = nil
+
+	game.quit <- struct{}{} //发送终止信号，使Run方法退出
+	close(game.quit)
 
 	return nil
 }
@@ -135,27 +143,27 @@ func (game *ChessGame) Run(downPlayerCh, upPlayerCh chan player.Statement) (msgC
 			switch game.round {
 			case 0, -1:
 				//棋局开始或者后手已经下完棋，先手下棋
-				st, err := game.playerDown.ReceiveStatement(downPlayerCh)
+				st, err := game.playerDown.ReceiveStatement(downPlayerCh, game.quit)
 				if err != nil {
-					gameMsg := GameMsg{
+
+					msgChan <- GameMsg{
 						Event:           Err,
 						WonChessmanCode: "",
 						WonGroup:        core.GroupNone,
 						Msg:             err.Error(),
 					}
-					msgChan <- gameMsg
 					return
 				}
 				//移动棋子
 				wonCode, err := game.board.MoveChessman(st.Group, st.Code, st.Source, st.Target)
 				if err != nil {
-					gameMsg := GameMsg{
+
+					msgChan <- GameMsg{
 						Event:           Err,
 						WonChessmanCode: "",
 						WonGroup:        core.GroupNone,
 						Msg:             err.Error(),
 					}
-					msgChan <- gameMsg
 				}
 
 				game.round = 1 //棋子移动完毕先手已经执行
@@ -197,7 +205,7 @@ func (game *ChessGame) Run(downPlayerCh, upPlayerCh chan player.Statement) (msgC
 				}
 			case 1:
 				//先手已经下完了棋，后手下棋
-				st, err := game.playerUp.ReceiveStatement(upPlayerCh)
+				st, err := game.playerUp.ReceiveStatement(upPlayerCh, game.quit)
 				if err != nil {
 					gameMsg := GameMsg{
 						Event:           Err,
@@ -265,30 +273,258 @@ func (game *ChessGame) Run(downPlayerCh, upPlayerCh chan player.Statement) (msgC
 	return msgChan
 }
 
-func (game *ChessGame) newChessmen(downGroup, upGroup core.ChessmanGroup) (chessmenOfPlayerDown, chessmenOfPlayerUp []chessman.ChessmanInterface) {
-	cm := make([]chessman.ChessmanInterface, 32)
+func (game *ChessGame) Show() {
+	matrix := game.board.GetMatrix()
 
-	//ju1 := chessman.NewChessman(core.Ju, "车",downGroup,core.Coordinate{
-	//	X: 0,
-	//	Y: 0,
-	//})
+	lenRows := len(matrix)
+
+	for i := lenRows - 1; i >= 0; i-- {
+		row := matrix[i]
+		lenCols := len(row)
+		for j := lenCols - 1; j >= 0; j-- {
+			c := row[j]
+			if c == nil {
+				print("  ")
+			} else {
+				print(c.GetChessmanName())
+			}
+		}
+		fmt.Println()
+	}
+	fmt.Println()
+}
+
+func (game *ChessGame) newChessmen(downGroup, upGroup core.ChessmanGroup) (chessmenOfPlayerDown, chessmenOfPlayerUp []chessman.ChessmanInterface) {
+
+	chessmenOfPlayerDown = make([]chessman.ChessmanInterface, 16)
+
+	ju1 := chessman.NewChessman(core.Ju, "车", downGroup, core.Coordinate{
+		X: 0,
+		Y: 0,
+	})
+	ju1.BindRule(chessman.RuleJu)
+	chessmenOfPlayerDown[0] = ju1
+
+	ju2 := chessman.NewChessman(core.Ju, "车", downGroup, core.Coordinate{
+		X: 8,
+		Y: 0,
+	})
+	ju2.BindRule(chessman.RuleJu)
+	chessmenOfPlayerDown[1] = ju2
 
 	ma1 := chessman.NewChessman(core.Ma, "马", downGroup, core.Coordinate{
 		X: 1,
 		Y: 0,
 	})
 	ma1.BindRule(chessman.RuleMa)
-	cm[0] = ma1
+	chessmenOfPlayerDown[2] = ma1
 
 	ma2 := chessman.NewChessman(core.Ma, "马", downGroup, core.Coordinate{
 		X: 7,
 		Y: 0,
 	})
 	ma2.BindRule(chessman.RuleMa)
-	cm[1] = ma2
+	chessmenOfPlayerDown[3] = ma2
 
-	//TODO
-	return cm, cm
+	xiang1 := chessman.NewChessman(core.Xiang, "象", downGroup, core.Coordinate{
+		X: 2,
+		Y: 0,
+	})
+	xiang1.BindRule(chessman.RuleXiang)
+	chessmenOfPlayerDown[4] = xiang1
+
+	xiang2 := chessman.NewChessman(core.Xiang, "象", downGroup, core.Coordinate{
+		X: 6,
+		Y: 0,
+	})
+	xiang2.BindRule(chessman.RuleXiang)
+	chessmenOfPlayerDown[5] = xiang2
+
+	shi1 := chessman.NewChessman(core.Shi, "士", downGroup, core.Coordinate{
+		X: 3,
+		Y: 0,
+	})
+	shi1.BindRule(chessman.RuleShi)
+	chessmenOfPlayerDown[6] = shi1
+
+	shi2 := chessman.NewChessman(core.Shi, "士", downGroup, core.Coordinate{
+		X: 5,
+		Y: 0,
+	})
+	shi2.BindRule(chessman.RuleShi)
+	chessmenOfPlayerDown[7] = shi2
+
+	jiangShuai1 := chessman.NewChessman(core.JiangShuai, "帅", downGroup, core.Coordinate{
+		X: 4,
+		Y: 0,
+	})
+	jiangShuai1.BindRule(chessman.RuleJiangShuai)
+	chessmenOfPlayerDown[8] = jiangShuai1
+
+	pao1 := chessman.NewChessman(core.Pao, "炮", downGroup, core.Coordinate{
+		X: 1,
+		Y: 2,
+	})
+	pao1.BindRule(chessman.RulePao)
+	chessmenOfPlayerDown[9] = pao1
+
+	pao2 := chessman.NewChessman(core.Pao, "炮", downGroup, core.Coordinate{
+		X: 7,
+		Y: 2,
+	})
+	pao2.BindRule(chessman.RulePao)
+	chessmenOfPlayerDown[10] = pao2
+
+	bingzu1 := chessman.NewChessman(core.BingZu, "兵", downGroup, core.Coordinate{
+		X: 0,
+		Y: 3,
+	})
+	bingzu1.BindRule(chessman.RuleBingZu)
+	chessmenOfPlayerDown[11] = bingzu1
+
+	bingzu2 := chessman.NewChessman(core.BingZu, "兵", downGroup, core.Coordinate{
+		X: 2,
+		Y: 3,
+	})
+	bingzu2.BindRule(chessman.RuleBingZu)
+	chessmenOfPlayerDown[12] = bingzu2
+
+	bingzu3 := chessman.NewChessman(core.BingZu, "兵", downGroup, core.Coordinate{
+		X: 4,
+		Y: 3,
+	})
+	bingzu3.BindRule(chessman.RuleBingZu)
+	chessmenOfPlayerDown[13] = bingzu3
+
+	bingzu4 := chessman.NewChessman(core.BingZu, "兵", downGroup, core.Coordinate{
+		X: 6,
+		Y: 3,
+	})
+	bingzu4.BindRule(chessman.RuleBingZu)
+	chessmenOfPlayerDown[14] = bingzu4
+
+	bingzu5 := chessman.NewChessman(core.BingZu, "兵", downGroup, core.Coordinate{
+		X: 8,
+		Y: 3,
+	})
+	bingzu5.BindRule(chessman.RuleBingZu)
+	chessmenOfPlayerDown[15] = bingzu5
+
+	chessmenOfPlayerUp = make([]chessman.ChessmanInterface, 16)
+
+	ju3 := chessman.NewChessman(core.Ju, "车", upGroup, core.Coordinate{
+		X: 0,
+		Y: 9,
+	})
+	ju3.BindRule(chessman.RuleJu)
+	chessmenOfPlayerUp[0] = ju3
+
+	ju4 := chessman.NewChessman(core.Ju, "车", upGroup, core.Coordinate{
+		X: 8,
+		Y: 9,
+	})
+	ju4.BindRule(chessman.RuleJu)
+	chessmenOfPlayerUp[1] = ju4
+
+	ma3 := chessman.NewChessman(core.Ma, "马", upGroup, core.Coordinate{
+		X: 1,
+		Y: 9,
+	})
+	ma3.BindRule(chessman.RuleMa)
+	chessmenOfPlayerUp[2] = ma3
+
+	ma4 := chessman.NewChessman(core.Ma, "马", upGroup, core.Coordinate{
+		X: 7,
+		Y: 9,
+	})
+	ma4.BindRule(chessman.RuleMa)
+	chessmenOfPlayerUp[3] = ma4
+
+	xiang3 := chessman.NewChessman(core.Xiang, "象", upGroup, core.Coordinate{
+		X: 2,
+		Y: 9,
+	})
+	xiang3.BindRule(chessman.RuleXiang)
+	chessmenOfPlayerUp[4] = xiang3
+
+	xiang4 := chessman.NewChessman(core.Xiang, "象", upGroup, core.Coordinate{
+		X: 6,
+		Y: 9,
+	})
+	xiang4.BindRule(chessman.RuleXiang)
+	chessmenOfPlayerUp[5] = xiang4
+
+	shi3 := chessman.NewChessman(core.Shi, "士", upGroup, core.Coordinate{
+		X: 3,
+		Y: 9,
+	})
+	shi3.BindRule(chessman.RuleShi)
+	chessmenOfPlayerUp[6] = shi3
+
+	shi4 := chessman.NewChessman(core.Shi, "士", upGroup, core.Coordinate{
+		X: 5,
+		Y: 9,
+	})
+	shi4.BindRule(chessman.RuleShi)
+	chessmenOfPlayerUp[7] = shi4
+
+	jiangShuai2 := chessman.NewChessman(core.JiangShuai, "将", upGroup, core.Coordinate{
+		X: 4,
+		Y: 9,
+	})
+	jiangShuai2.BindRule(chessman.RuleJiangShuai)
+	chessmenOfPlayerUp[8] = jiangShuai2
+
+	pao3 := chessman.NewChessman(core.Pao, "炮", upGroup, core.Coordinate{
+		X: 1,
+		Y: 7,
+	})
+	pao3.BindRule(chessman.RulePao)
+	chessmenOfPlayerUp[9] = pao3
+
+	pao4 := chessman.NewChessman(core.Pao, "炮", upGroup, core.Coordinate{
+		X: 7,
+		Y: 7,
+	})
+	pao4.BindRule(chessman.RulePao)
+	chessmenOfPlayerUp[10] = pao4
+
+	bingzu6 := chessman.NewChessman(core.BingZu, "卒", upGroup, core.Coordinate{
+		X: 0,
+		Y: 6,
+	})
+	bingzu6.BindRule(chessman.RuleBingZu)
+	chessmenOfPlayerUp[11] = bingzu6
+
+	bingzu7 := chessman.NewChessman(core.BingZu, "卒", upGroup, core.Coordinate{
+		X: 2,
+		Y: 6,
+	})
+	bingzu7.BindRule(chessman.RuleBingZu)
+	chessmenOfPlayerUp[12] = bingzu7
+
+	bingzu8 := chessman.NewChessman(core.BingZu, "卒", upGroup, core.Coordinate{
+		X: 4,
+		Y: 6,
+	})
+	bingzu8.BindRule(chessman.RuleBingZu)
+	chessmenOfPlayerUp[13] = bingzu8
+
+	bingzu9 := chessman.NewChessman(core.BingZu, "卒", upGroup, core.Coordinate{
+		X: 6,
+		Y: 6,
+	})
+	bingzu9.BindRule(chessman.RuleBingZu)
+	chessmenOfPlayerUp[14] = bingzu9
+
+	bingzu10 := chessman.NewChessman(core.BingZu, "卒", upGroup, core.Coordinate{
+		X: 8,
+		Y: 6,
+	})
+	bingzu10.BindRule(chessman.RuleBingZu)
+	chessmenOfPlayerUp[15] = bingzu10
+
+	return chessmenOfPlayerDown, chessmenOfPlayerUp
 }
 
 func (game *ChessGame) JiangShuaiFace2Face() bool {
@@ -298,6 +534,9 @@ func (game *ChessGame) JiangShuaiFace2Face() bool {
 	for i := 0; i < 3; i++ {
 		row := matrix[i]
 		for j, r := range row {
+			if r == nil {
+				continue
+			}
 			if r.GetChessmanCode() == core.JiangShuai {
 				downJiangShuaiCoordinate.X = j
 				downJiangShuaiCoordinate.Y = i
@@ -310,6 +549,9 @@ func (game *ChessGame) JiangShuaiFace2Face() bool {
 	for i := 7; i < 10; i++ {
 		row := matrix[i]
 		for j, r := range row {
+			if r == nil {
+				continue
+			}
 			if r.GetChessmanCode() == core.JiangShuai {
 				upJiangShuaiCoordinate.X = j
 				upJiangShuaiCoordinate.Y = i
