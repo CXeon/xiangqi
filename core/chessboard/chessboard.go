@@ -7,6 +7,11 @@ import (
 	"github.com/CXeon/xiangqi/core/chessman"
 )
 
+const (
+	rows = 10 //棋盘行数
+	cols = 9  //棋盘列数
+)
+
 type Chessboard struct {
 	//棋盘上所有的位置，必须被初始化为 10行9列。
 	//索引代表坐标 对应棋盘的方向为从右往左，从下往上
@@ -19,7 +24,7 @@ type Chessboard struct {
 // NewChessboard 新建棋盘
 func NewChessboard() *Chessboard {
 	return &Chessboard{
-		matrix:   initMatrix(10, 9),
+		matrix:   initMatrix(rows, cols),
 		rowGroup: make(map[int]core.ChessmanGroup),
 	}
 }
@@ -39,7 +44,7 @@ func (board *Chessboard) GetGroupInRow(rowIndex int) core.ChessmanGroup {
 // 初始化棋盘格矩阵
 func initMatrix(row, column int) [][]chessman.ChessmanInterface {
 	matrix := make([][]chessman.ChessmanInterface, row)
-	for i := 0; i < 10; i++ {
+	for i := 0; i < rows; i++ {
 		matrix[i] = make([]chessman.ChessmanInterface, column)
 	}
 	return matrix
@@ -50,16 +55,16 @@ func (board *Chessboard) PutChessmenOnBoard(chessmen []chessman.ChessmanInterfac
 	for _, chess := range chessmen {
 		defaultX := chess.GetChessmanDefaultCoordinate().X
 		defaultY := chess.GetChessmanDefaultCoordinate().Y
-		if defaultX > 8 {
+		if defaultX > cols-1 {
 			msg := fmt.Sprintf("the default x is too big for chess %s", chess.GetChessmanCode())
 			//遇到报错重置矩阵
-			board.matrix = initMatrix(10, 9)
+			board.matrix = initMatrix(rows, cols)
 			return errors.New(msg)
 		}
-		if defaultY > 9 {
+		if defaultY > rows-1 {
 			msg := fmt.Sprintf("the default y is too big for chess %s", chess.GetChessmanCode())
 			//遇到报错重置棋盘
-			board.matrix = initMatrix(10, 9)
+			board.matrix = initMatrix(rows, cols)
 			return errors.New(msg)
 		}
 		board.matrix[defaultY][defaultX] = chess
@@ -116,5 +121,5 @@ func (board *Chessboard) GetRowsGroup() map[int]core.ChessmanGroup {
 }
 
 func (board *Chessboard) ClearChessmen() {
-	board.matrix = initMatrix(10, 9)
+	board.matrix = initMatrix(rows, cols)
 }

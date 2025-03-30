@@ -110,6 +110,9 @@ func (game *ChessGame) ResetGame() error {
 	}
 	game.playerUp.AddOwnChessmen(codes2)
 
+	//重置回合标记
+	game.round = 0
+
 	return nil
 }
 
