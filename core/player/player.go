@@ -9,6 +9,7 @@ type Player struct {
 	ID           int                 //玩家id
 	group        core.ChessmanGroup  //阵营
 	isFirst      bool                //是否是先手
+	isDown       bool                //是否位于棋盘俯视图下方
 	ownChessman  []core.ChessmanCode //自己拥有的己方棋子code数组
 	lostChessman []core.ChessmanCode //失去的己方棋子code数组
 	wonChessman  []core.ChessmanCode //赢得的棋子数组
@@ -57,6 +58,16 @@ func (p *Player) GetIsFirst() bool {
 	return p.isFirst
 }
 
+// SetIsDown 设置玩家位于棋盘俯视图的位置
+func (p *Player) SetIsDown(isDown bool) {
+	p.isDown = isDown
+}
+
+// GetIsDown 获取玩家位于棋盘俯视图的位置
+func (p *Player) GetIsDown() bool {
+	return p.isDown
+}
+
 /**玩家存活的棋子相关**/
 
 // GetOwnChessmen 获取玩家所有存活的棋子
@@ -89,6 +100,7 @@ func (p *Player) DelOwnChessman(code core.ChessmanCode) error {
 	for i := 0; i < len(p.ownChessman); i++ {
 		if p.ownChessman[i] == code {
 			index = i
+			break
 		}
 	}
 	if index < 0 {
@@ -100,6 +112,7 @@ func (p *Player) DelOwnChessman(code core.ChessmanCode) error {
 	}
 	if len(p.ownChessman)-1 == index {
 		p.ownChessman = p.ownChessman[:index]
+		return nil
 	}
 
 	s1 := p.ownChessman[:index]
@@ -150,6 +163,7 @@ func (p *Player) DelLostChessman(code core.ChessmanCode) error {
 	for i := 0; i < len(p.lostChessman); i++ {
 		if p.lostChessman[i] == code {
 			index = i
+			break
 		}
 	}
 	if index < 0 {
@@ -161,6 +175,7 @@ func (p *Player) DelLostChessman(code core.ChessmanCode) error {
 	}
 	if len(p.lostChessman)-1 == index {
 		p.lostChessman = p.lostChessman[:index]
+		return nil
 	}
 
 	s1 := p.lostChessman[:index]
@@ -211,6 +226,7 @@ func (p *Player) DelWonChessman(code core.ChessmanCode) error {
 	for i := 0; i < len(p.wonChessman); i++ {
 		if p.wonChessman[i] == code {
 			index = i
+			break
 		}
 	}
 	if index < 0 {
@@ -222,6 +238,7 @@ func (p *Player) DelWonChessman(code core.ChessmanCode) error {
 	}
 	if len(p.wonChessman)-1 == index {
 		p.wonChessman = p.wonChessman[:index]
+		return nil
 	}
 
 	s1 := p.wonChessman[:index]

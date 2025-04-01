@@ -15,7 +15,7 @@ type ChessGameInterface interface {
 	Close() error
 
 	//运行棋局
-	Run(downPlayerCh, upPlayerCh chan player.Statement) (msgChan <-chan GameMsg)
+	Run(downPlayerCh, upPlayerCh chan player.Statement) (msgChan chan GameMsg)
 
 	//打印棋局
 	Show()

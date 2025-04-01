@@ -10,6 +10,8 @@ type PlayerInterface interface {
 	GetGroup() core.ChessmanGroup                                              //获取玩家所属阵营
 	SetIsFirst(isFirst bool)                                                   //设置玩家是否是先手
 	GetIsFirst() bool                                                          //获取玩家是否是先手
+	SetIsDown(isDown bool)                                                     //设置玩家是否在棋盘俯视图下方
+	GetIsDown() bool                                                           //获取玩家位于棋盘俯视图位置
 
 	/**玩家存活的棋子相关**/
 	GetOwnChessmen() ([]core.ChessmanCode, error) //获取玩家所有存活的棋子

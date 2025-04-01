@@ -24,7 +24,7 @@ type ChessGame struct {
 func (game *ChessGame) InitialGame(player1, player2 player.PlayerInterface) error {
 
 	//引入玩家
-	if player1.GetIsFirst() {
+	if player1.GetIsDown() {
 		game.playerDown = player1
 		game.playerUp = player2
 	} else {
@@ -36,7 +36,7 @@ func (game *ChessGame) InitialGame(player1, player2 player.PlayerInterface) erro
 	board := chessboard.NewChessboard()
 
 	//划分棋盘区域
-	if player1.GetIsFirst() {
+	if player1.GetIsDown() {
 		board.DivideGroup(player1.GetGroup(), []int{0, 1, 2, 3, 4})
 		board.DivideGroup(player2.GetGroup(), []int{5, 6, 7, 8, 9})
 	} else {
