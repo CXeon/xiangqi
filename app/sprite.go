@@ -21,32 +21,26 @@ type Sprite struct {
 
 // In returns true if (x, y) is in the sprite, and false otherwise.
 func (s *Sprite) In(x, y int) bool {
-	// Check the actual color (alpha) value at the specified position
-	// so that the result of In becomes natural to users.
-	//
-	// Use alphaImage (*image.Alpha) instead of image (*ebiten.Image) here.
-	// It is because (*ebiten.Image).At is very slow as this reads pixels from GPU,
-	// and should be avoided whenever possible.
 	return s.alphaImage.At(x-s.x, y-s.y).(color.Alpha).A > 0
 }
 
 // MoveTo moves the sprite to the position (x, y).
 func (s *Sprite) MoveTo(x, y int) {
-	w, h := s.image.Bounds().Dx(), s.image.Bounds().Dy()
+	//w, h := s.image.Bounds().Dx(), s.image.Bounds().Dy()
 
 	s.x = x
 	s.y = y
 	if s.x < 0 {
 		s.x = 0
 	}
-	if s.x > ScreenWidth-w {
-		s.x = ScreenWidth - w
+	if s.x > ScreenWidth {
+		s.x = ScreenWidth
 	}
 	if s.y < 0 {
 		s.y = 0
 	}
-	if s.y > ScreenHeight-h {
-		s.y = ScreenHeight - h
+	if s.y > ScreenHeight {
+		s.y = ScreenHeight
 	}
 }
 

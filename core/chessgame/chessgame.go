@@ -14,13 +14,13 @@ type ChessGame struct {
 	board        chessboard.ChessboardInterface //棋盘
 	downChessmen []chessman.ChessmanInterface   //棋子
 	upChessmen   []chessman.ChessmanInterface
-	round        int //记录当前回合执行情况 0：都没下棋，1:先手已下棋，-1:后手已下棋
+	//round        int //记录当前回合执行情况 0：都没下棋，1:先手已下棋，-1:后手已下棋
+	nextRoundGroup core.ChessmanGroup //下一回合应该哪个阵营下棋
 
 	quit chan struct{} //退出通道，用于随时终止棋局
 }
 
 // 初始化棋局
-// 先手player的阵营会被初始化在棋盘下方
 func (game *ChessGame) InitialGame(player1, player2 player.PlayerInterface) error {
 
 	//引入玩家
@@ -57,6 +57,12 @@ func (game *ChessGame) InitialGame(player1, player2 player.PlayerInterface) erro
 
 	game.downChessmen = chessmenOfPlayerDown
 	game.upChessmen = chessmenOfPlayerUp
+
+	if game.playerDown.GetIsFirst() {
+		game.nextRoundGroup = game.playerDown.GetGroup()
+	} else {
+		game.nextRoundGroup = game.playerUp.GetGroup()
+	}
 
 	game.quit = make(chan struct{}, 1) //初始化终止通道
 
@@ -111,7 +117,11 @@ func (game *ChessGame) ResetGame() error {
 	game.playerUp.AddOwnChessmen(codes2)
 
 	//重置回合标记
-	game.round = 0
+	if game.playerDown.GetIsFirst() {
+		game.nextRoundGroup = game.playerDown.GetGroup()
+	} else {
+		game.nextRoundGroup = game.playerUp.GetGroup()
+	}
 
 	return nil
 }
@@ -143,10 +153,16 @@ func (game *ChessGame) Run(downPlayerCh, upPlayerCh chan player.Statement) (msgC
 	go func() {
 		defer close(msgChan)
 		for {
-			switch game.round {
-			case 0, -1:
+			switch game.nextRoundGroup {
+			case core.Group1:
+				var pl player.PlayerInterface
+				if game.playerDown.GetGroup() == core.Group1 {
+					pl = game.playerDown
+				} else {
+					pl = game.playerUp
+				}
 				//棋局开始或者后手已经下完棋，先手下棋
-				st, err := game.playerDown.ReceiveStatement(downPlayerCh, game.quit)
+				st, err := pl.ReceiveStatement(downPlayerCh, game.quit)
 				if err != nil {
 
 					msgChan <- GameMsg{
@@ -170,7 +186,7 @@ func (game *ChessGame) Run(downPlayerCh, upPlayerCh chan player.Statement) (msgC
 					continue
 				}
 
-				game.round = 1 //棋子移动完毕先手已经执行
+				game.nextRoundGroup = core.Group2 //修改下一回合下棋阵营
 
 				//判定吃的棋子是否将军，是的话就赢了
 				if wonCode == core.JiangShuai {
@@ -207,9 +223,14 @@ func (game *ChessGame) Run(downPlayerCh, upPlayerCh chan player.Statement) (msgC
 					WonGroup:        core.GroupNone,
 					Msg:             "moveDone",
 				}
-			case 1:
-				//先手已经下完了棋，后手下棋
-				st, err := game.playerUp.ReceiveStatement(upPlayerCh, game.quit)
+			case core.Group2:
+				var pl player.PlayerInterface
+				if game.playerDown.GetGroup() == core.Group2 {
+					pl = game.playerDown
+				} else {
+					pl = game.playerUp
+				}
+				st, err := pl.ReceiveStatement(upPlayerCh, game.quit)
 				if err != nil {
 					gameMsg := GameMsg{
 						Event:           Err,
@@ -233,7 +254,7 @@ func (game *ChessGame) Run(downPlayerCh, upPlayerCh chan player.Statement) (msgC
 					continue
 				}
 
-				game.round = -1 //棋子移动完毕先手已经执行
+				game.nextRoundGroup = core.Group1 //棋子移动完毕先手已经执行
 
 				//判定吃的棋子是否将军，是的话就赢了
 				if wonCode == core.JiangShuai {

@@ -190,7 +190,7 @@ func RuleBingZu(matrix [][]ChessmanInterface, rowGroup map[int]core.ChessmanGrou
 			return false, errors.New("invalid move")
 		}
 	case "LEFT1", "RIGHT1":
-		if matrix[source.Y][source.X].GetChessmanGroup() == rowGroup[4] {
+		if matrix[source.Y][source.X].GetChessmanGroup() == rowGroup[source.Y] {
 			return false, errors.New("invalid move")
 		}
 	default:

@@ -6,6 +6,7 @@ import (
 	"github.com/CXeon/xiangqi/core/chessgame"
 	"github.com/CXeon/xiangqi/core/player"
 	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
 	"log"
 )
@@ -29,6 +30,9 @@ type Game struct {
 
 	gameCore chessgame.ChessGameInterface //游戏内核
 	coreCh   chan chessgame.GameMsg       //管道接收内核返回的消息
+
+	gameMsg *chessgame.GameMsg //如果不为nil，需要显示在屏幕消息区
+
 }
 
 func NewGame() *Game {
@@ -83,6 +87,8 @@ func NewGame() *Game {
 func (g *Game) Update() error {
 	//如果发生鼠标左键点击事件
 	if inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonLeft) {
+		g.gameMsg = nil
+		
 		//是否点击了棋子
 		if sp := g.spriteAt(ebiten.CursorPosition()); sp != nil {
 			//如果选中的棋子就是当前应该下棋的阵营
@@ -134,7 +140,9 @@ func (g *Game) Update() error {
 
 					//接收回复
 					msg := <-g.coreCh
-					fmt.Println(msg)
+					//fmt.Println(msg)
+					g.gameMsg = &msg
+
 					if msg.Event == chessgame.Done {
 						//校验通过，移动游戏界面的棋子
 						g.clickedSprite.MoveTo(sp.x, sp.y)
@@ -207,7 +215,9 @@ func (g *Game) Update() error {
 
 			//接收回复
 			msg := <-g.coreCh
-			fmt.Println(msg)
+			//fmt.Println(msg)
+			g.gameMsg = &msg
+
 			if msg.Event == chessgame.Done {
 				//校验通过，移动游戏界面的棋子
 				g.clickedSprite.MoveTo(x+g.spriteReparation, y+g.spriteReparation)
@@ -240,6 +250,9 @@ func (g *Game) Draw(screen *ebiten.Image) {
 			s.Draw(screen, 1)
 		}
 	}
+
+	g.ShowGameMsg(screen)
+
 }
 
 func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
@@ -1442,4 +1455,25 @@ func (g *Game) transformCoordinate(x, y int) (coreX, coreY int) {
 	coreY = (dy - y) / gridLength
 
 	return coreX, coreY
+}
+
+func (g *Game) ShowGameMsg(screen *ebiten.Image) {
+	if g.gameMsg == nil {
+		return
+	}
+	str := ""
+	str += fmt.Sprintf("result：%s. ", g.gameMsg.Event)
+	if len(g.gameMsg.WonChessmanCode) > 0 {
+		str += fmt.Sprintf("capture：%s. ", g.gameMsg.WonChessmanCode)
+	}
+
+	if len(g.gameMsg.Msg) > 0 {
+		str += fmt.Sprintf("msg：%s. ", g.gameMsg.Msg)
+	}
+
+	if g.gameMsg.WonGroup > 0 {
+		str += fmt.Sprintf("game over，winner：%s. ", g.gameMsg.WonChessmanCode)
+	}
+
+	ebitenutil.DebugPrintAt(screen, str, g.boardLogicZeroPoint.x, g.boardLogicZeroPoint.y+9*gridLength+30)
 }
