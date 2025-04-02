@@ -50,4 +50,10 @@ var (
 
 	//go:embed red_bing.png
 	RedBing []byte //红兵文件
+
+	//go:embed win.png
+	Win []byte //胜利界面
+
+	//go:embed once_again.png
+	OnceAgain []byte //再来一局按钮
 )

@@ -18,6 +18,11 @@ type Game struct {
 	gridLength          int        //棋盘格长宽所占像素
 	spriteReparation    int        //设置sprite坐标时，x,y坐标的补偿值
 
+	gameMsg *chessgame.GameMsg //如果不为nil，需要显示在屏幕消息区
+
+	winner       string        //游戏胜利者记录
+	onceAgainBtn *onceAgainBtn //再来一次按钮
+
 	//业务逻辑相关
 	player1 player.PlayerInterface //玩家1 在棋盘下方
 	player2 player.PlayerInterface //玩家2 在棋盘上方
@@ -30,8 +35,6 @@ type Game struct {
 
 	gameCore chessgame.ChessGameInterface //游戏内核
 	coreCh   chan chessgame.GameMsg       //管道接收内核返回的消息
-
-	gameMsg *chessgame.GameMsg //如果不为nil，需要显示在屏幕消息区
 
 }
 
@@ -73,6 +76,14 @@ func NewGame() *Game {
 		g.nextRoundGroup = p2.GetGroup()
 	}
 
+	g.winner = ""
+	g.onceAgainBtn = &onceAgainBtn{
+		image:      ebitenOnceAgainBtnImage,
+		alphaImage: ebitenOnceAgainBtnAlphaImage,
+		x:          g.boardLogicZeroPoint.x + 3*g.gridLength,
+		y:          g.boardLogicZeroPoint.y + 7*g.gridLength,
+	}
+
 	//启动内核
 	g.gameCore = new(chessgame.ChessGame)
 	err := g.gameCore.InitialGame(p1, p2)
@@ -85,10 +96,49 @@ func NewGame() *Game {
 }
 
 func (g *Game) Update() error {
+
 	//如果发生鼠标左键点击事件
 	if inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonLeft) {
 		g.gameMsg = nil
-		
+
+		//如果已经产生胜者，只需要判断是否点击了再来一局按钮
+		if len(g.winner) > 0 {
+			if g.onceAgainBtn.In(ebiten.CursorPosition()) {
+				//重置棋局
+
+				//切换先手
+				if g.player1.GetIsFirst() {
+					g.player2.SetIsFirst(true)
+					g.player1.SetIsFirst(false)
+				} else {
+					g.player1.SetIsFirst(true)
+					g.player2.SetIsFirst(false)
+				}
+
+				//重新摆棋
+				g.initSprites(g.player1, g.player2)
+				if g.player1.GetIsFirst() {
+					g.nextRoundGroup = g.player1.GetGroup()
+				} else {
+					g.nextRoundGroup = g.player2.GetGroup()
+				}
+
+				//内核也要重置棋局
+				err := g.gameCore.ResetGame()
+				if err != nil {
+					return err
+				}
+
+				//重置获胜记录和其他信息
+				g.winner = ""
+				g.gameMsg = nil
+				g.clickedSprite = nil
+
+			}
+
+			return nil
+		}
+
 		//是否点击了棋子
 		if sp := g.spriteAt(ebiten.CursorPosition()); sp != nil {
 			//如果选中的棋子就是当前应该下棋的阵营
@@ -143,7 +193,7 @@ func (g *Game) Update() error {
 					//fmt.Println(msg)
 					g.gameMsg = &msg
 
-					if msg.Event == chessgame.Done {
+					if msg.Event == chessgame.Done || msg.Event == chessgame.Fin {
 						//校验通过，移动游戏界面的棋子
 						g.clickedSprite.MoveTo(sp.x, sp.y)
 						//修改坐标
@@ -161,6 +211,19 @@ func (g *Game) Update() error {
 							g.nextRoundGroup = g.player1.GetGroup()
 						}
 
+						//TODO 如果出现赢家
+						if msg.Event == chessgame.Fin {
+							//获取胜利阵营
+							group := msg.WonGroup
+							//判断玩家哪个属于这个阵营
+							pl := g.getPlayerByGroup(group)
+							if pl.GetIsFirst() {
+								g.winner = "红方"
+							} else {
+								g.winner = "黑方"
+							}
+
+						}
 					}
 				}
 			}
@@ -218,7 +281,7 @@ func (g *Game) Update() error {
 			//fmt.Println(msg)
 			g.gameMsg = &msg
 
-			if msg.Event == chessgame.Done {
+			if msg.Event == chessgame.Done || msg.Event == chessgame.Fin {
 				//校验通过，移动游戏界面的棋子
 				g.clickedSprite.MoveTo(x+g.spriteReparation, y+g.spriteReparation)
 
@@ -229,6 +292,19 @@ func (g *Game) Update() error {
 					g.nextRoundGroup = g.player2.GetGroup()
 				} else {
 					g.nextRoundGroup = g.player1.GetGroup()
+				}
+
+				if msg.Event == chessgame.Fin {
+					//获取胜利阵营
+					group := msg.WonGroup
+					//判断玩家哪个属于这个阵营
+					pl := g.getPlayerByGroup(group)
+					if pl.GetIsFirst() {
+						g.winner = "红方"
+					} else {
+						g.winner = "黑方"
+					}
+
 				}
 
 			}
@@ -252,6 +328,10 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	}
 
 	g.ShowGameMsg(screen)
+
+	if len(g.winner) > 0 {
+		g.drawWinner(screen)
+	}
 
 }
 
@@ -1476,4 +1556,35 @@ func (g *Game) ShowGameMsg(screen *ebiten.Image) {
 	}
 
 	ebitenutil.DebugPrintAt(screen, str, g.boardLogicZeroPoint.x, g.boardLogicZeroPoint.y+9*gridLength+30)
+}
+
+// 根据阵营获取玩家信息
+func (g *Game) getPlayerByGroup(group core.ChessmanGroup) player.PlayerInterface {
+	if g.player1.GetGroup() == group {
+		return g.player1
+	}
+	if g.player2.GetGroup() == group {
+		return g.player2
+	}
+	return nil
+}
+
+func (g *Game) drawWinner(screen *ebiten.Image) {
+	//绘制胜利图标
+	op := &ebiten.DrawImageOptions{}
+	winLogoX := g.boardLogicZeroPoint.x + 2*g.gridLength
+	winLogoY := g.boardLogicZeroPoint.y + 3*g.gridLength
+	op.GeoM.Translate(float64(winLogoX), float64(winLogoY))
+	screen.DrawImage(ebitenWinImage, op)
+	ebitenutil.DebugPrintAt(screen, g.winner, winLogoX+2*g.gridLength, winLogoY+3*g.gridLength)
+
+	//绘制再来一次按钮
+	onceAgainBtn := &onceAgainBtn{
+		image:      ebitenOnceAgainBtnImage,
+		alphaImage: ebitenOnceAgainBtnAlphaImage,
+		x:          g.boardLogicZeroPoint.x + 3*g.gridLength,
+		y:          g.boardLogicZeroPoint.y + 7*g.gridLength,
+	}
+	onceAgainBtn.Draw(screen, 1)
+
 }

@@ -72,6 +72,13 @@ var (
 	//红兵
 	ebitenRedBingImage      *ebiten.Image
 	ebitenRedBingAlphaImage *image.Alpha
+
+	//win
+	ebitenWinImage *ebiten.Image
+
+	//onceAgain
+	ebitenOnceAgainBtnImage      *ebiten.Image
+	ebitenOnceAgainBtnAlphaImage *image.Alpha
 )
 
 func init() {
@@ -303,6 +310,31 @@ func init() {
 		for j := bRedBing.Min.Y; j < bRedBing.Max.Y; j++ {
 			for i := bRedBing.Min.X; i < bRedBing.Max.X; i++ {
 				ebitenRedBingAlphaImage.Set(i, j, bRedBing.At(i, j))
+			}
+		}
+	}
+
+	{
+		//加载胜利图片到内存
+		imgWin, _, err := image.Decode(bytes.NewReader(assets.Win))
+		if err != nil {
+			log.Fatal(err)
+		}
+		ebitenWinImage = ebiten.NewImageFromImage(imgWin)
+	}
+
+	{
+		//加载再来一句按钮到内存
+		imgOnceAgainBtn, _, err := image.Decode(bytes.NewReader(assets.OnceAgain))
+		if err != nil {
+			log.Fatal(err)
+		}
+		ebitenOnceAgainBtnImage = ebiten.NewImageFromImage(imgOnceAgainBtn)
+		bOnceAgainBtn := imgOnceAgainBtn.Bounds()
+		ebitenOnceAgainBtnAlphaImage = image.NewAlpha(bOnceAgainBtn)
+		for j := bOnceAgainBtn.Min.Y; j < bOnceAgainBtn.Max.Y; j++ {
+			for i := bOnceAgainBtn.Min.X; i < bOnceAgainBtn.Max.X; i++ {
+				ebitenOnceAgainBtnAlphaImage.Set(i, j, bOnceAgainBtn.At(i, j))
 			}
 		}
 	}

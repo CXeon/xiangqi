@@ -9,13 +9,10 @@ import (
 )
 
 type ChessGame struct {
-	playerDown   player.PlayerInterface         //玩家1号
-	playerUp     player.PlayerInterface         //玩家2号
-	board        chessboard.ChessboardInterface //棋盘
-	downChessmen []chessman.ChessmanInterface   //棋子
-	upChessmen   []chessman.ChessmanInterface
-	//round        int //记录当前回合执行情况 0：都没下棋，1:先手已下棋，-1:后手已下棋
-	nextRoundGroup core.ChessmanGroup //下一回合应该哪个阵营下棋
+	playerDown     player.PlayerInterface         //玩家1号
+	playerUp       player.PlayerInterface         //玩家2号
+	board          chessboard.ChessboardInterface //棋盘
+	nextRoundGroup core.ChessmanGroup             //下一回合应该哪个阵营下棋
 
 	quit chan struct{} //退出通道，用于随时终止棋局
 }
@@ -55,9 +52,6 @@ func (game *ChessGame) InitialGame(player1, player2 player.PlayerInterface) erro
 	}
 	game.board = board
 
-	game.downChessmen = chessmenOfPlayerDown
-	game.upChessmen = chessmenOfPlayerUp
-
 	if game.playerDown.GetIsFirst() {
 		game.nextRoundGroup = game.playerDown.GetGroup()
 	} else {
@@ -86,8 +80,20 @@ func (game *ChessGame) InitialGame(player1, player2 player.PlayerInterface) erro
 func (game *ChessGame) ResetGame() error {
 	//清空棋子
 	game.board.ClearChessmen()
-	//重新放置棋子
-	allChessmen := append(game.downChessmen, game.upChessmen...)
+
+	//玩家的座位和阵营可能改变，所以重新划分棋盘区域
+	if !game.playerDown.GetIsDown() {
+		game.playerDown, game.playerUp = game.playerUp, game.playerDown
+	}
+
+	game.board.DivideGroup(game.playerDown.GetGroup(), []int{0, 1, 2, 3, 4})
+	game.board.DivideGroup(game.playerUp.GetGroup(), []int{5, 6, 7, 8, 9})
+
+	//创建棋子
+	chessmenOfPlayerDown, chessmenOfPlayerUp := game.newChessmen(game.playerDown.GetGroup(), game.playerUp.GetGroup())
+
+	allChessmen := append(chessmenOfPlayerDown, chessmenOfPlayerUp...)
+
 	err := game.board.PutChessmenOnBoard(allChessmen)
 	if err != nil {
 		return err
@@ -104,14 +110,14 @@ func (game *ChessGame) ResetGame() error {
 
 	//重新开始记录
 	//记录玩家初始拥有的棋子
-	codes1 := make([]core.ChessmanCode, len(game.downChessmen))
-	for i, c := range game.downChessmen {
+	codes1 := make([]core.ChessmanCode, len(chessmenOfPlayerDown))
+	for i, c := range chessmenOfPlayerDown {
 		codes1[i] = c.GetChessmanCode()
 	}
 	game.playerDown.AddOwnChessmen(codes1)
 
-	codes2 := make([]core.ChessmanCode, len(game.upChessmen))
-	for i, c := range game.upChessmen {
+	codes2 := make([]core.ChessmanCode, len(chessmenOfPlayerUp))
+	for i, c := range chessmenOfPlayerUp {
 		codes2[i] = c.GetChessmanCode()
 	}
 	game.playerUp.AddOwnChessmen(codes2)
@@ -137,8 +143,6 @@ func (game *ChessGame) Close() error {
 	game.playerUp.ClearWonChessman()
 
 	game.board = nil
-	game.downChessmen = nil
-	game.upChessmen = nil
 
 	game.quit <- struct{}{} //发送终止信号，使Run方法退出
 	close(game.quit)
@@ -590,7 +594,7 @@ func (game *ChessGame) JiangShuaiFace2Face() bool {
 		return false
 	}
 	//横坐标相同判定棋子中间是否已经没有棋子
-	for i := downJiangShuaiCoordinate.Y; i <= upJiangShuaiCoordinate.Y; i++ {
+	for i := downJiangShuaiCoordinate.Y + 1; i < upJiangShuaiCoordinate.Y; i++ {
 		if matrix[i][downJiangShuaiCoordinate.X] != nil {
 			return false
 		}
