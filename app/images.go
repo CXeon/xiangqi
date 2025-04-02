@@ -9,8 +9,8 @@ import (
 )
 
 var (
-	ScreenWidth  = 640
-	ScreenHeight = 640
+	ScreenWidth  = 576
+	ScreenHeight = 672
 )
 
 var (

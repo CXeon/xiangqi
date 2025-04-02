@@ -167,6 +167,7 @@ func (game *ChessGame) Run(downPlayerCh, upPlayerCh chan player.Statement) (msgC
 						WonGroup:        core.GroupNone,
 						Msg:             err.Error(),
 					}
+					continue
 				}
 
 				game.round = 1 //棋子移动完毕先手已经执行
@@ -222,13 +223,14 @@ func (game *ChessGame) Run(downPlayerCh, upPlayerCh chan player.Statement) (msgC
 				//移动棋子
 				wonCode, err := game.board.MoveChessman(st.Group, st.Code, st.Source, st.Target)
 				if err != nil {
-					gameMsg := GameMsg{
+					msgChan <- GameMsg{
 						Event:           Err,
 						WonChessmanCode: "",
 						WonGroup:        core.GroupNone,
 						Msg:             err.Error(),
 					}
-					msgChan <- gameMsg
+
+					continue
 				}
 
 				game.round = -1 //棋子移动完毕先手已经执行

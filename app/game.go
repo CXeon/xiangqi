@@ -101,8 +101,8 @@ func (g *Game) Update() error {
 					g.moveSpriteToFront(sp)
 
 					// 将操作传给核心层校验，然后移动被选中的棋子到目标坐标
-					sourceCoreX, sourceCoreY := g.transformCoordinate(g.clickedSprite.x+spriteReparation, g.clickedSprite.y+spriteReparation)
-					targetCoreX, targetCoreY := g.transformCoordinate(sp.x+spriteReparation, sp.y+spriteReparation)
+					sourceCoreX, sourceCoreY := g.transformCoordinate(g.clickedSprite.x-g.spriteReparation, g.clickedSprite.y-g.spriteReparation)
+					targetCoreX, targetCoreY := g.transformCoordinate(sp.x-g.spriteReparation, sp.y-g.spriteReparation)
 					if g.player1.GetGroup() == g.nextRoundGroup {
 
 						g.p1Ch <- player.Statement{
@@ -176,7 +176,7 @@ func (g *Game) Update() error {
 			}
 			g.moveSpriteToFront(g.clickedSprite)
 			// 将操作传给核心层校验，然后移动被选中的棋子到目标坐标
-			sourceCoreX, sourceCoreY := g.transformCoordinate(g.clickedSprite.x+spriteReparation, g.clickedSprite.y+spriteReparation)
+			sourceCoreX, sourceCoreY := g.transformCoordinate(g.clickedSprite.x-g.spriteReparation, g.clickedSprite.y-g.spriteReparation)
 			if g.player1.GetGroup() == g.nextRoundGroup {
 				g.p1Ch <- player.Statement{
 					Group: g.player1.GetGroup(),
@@ -235,7 +235,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	//绘制棋子
 	for _, s := range g.sprites {
 		if s.clicked {
-			s.Draw(screen, 0.5)
+			s.Draw(screen, 0.7)
 		} else {
 			s.Draw(screen, 1)
 		}

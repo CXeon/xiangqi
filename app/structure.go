@@ -1,7 +1,7 @@
 package app
 
 const (
-	boardLogicZeroX  int = 96
+	boardLogicZeroX  int = 32
 	boardLogicZeroY  int = 32
 	gridLength       int = 64
 	spriteReparation int = -26
