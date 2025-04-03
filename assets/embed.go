@@ -56,4 +56,7 @@ var (
 
 	//go:embed once_again.png
 	OnceAgain []byte //再来一局按钮
+
+	//go:embed fzfs_gbk.ttf
+	HanziTTF []byte //中文字体
 )

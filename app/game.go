@@ -6,8 +6,8 @@ import (
 	"github.com/CXeon/xiangqi/core/chessgame"
 	"github.com/CXeon/xiangqi/core/player"
 	"github.com/hajimehoshi/ebiten/v2"
-	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
+	"github.com/hajimehoshi/ebiten/v2/text/v2"
 	"log"
 )
 
@@ -128,6 +128,7 @@ func (g *Game) Update() error {
 				if err != nil {
 					return err
 				}
+				g.coreCh = g.gameCore.Run(g.p1Ch, g.p2Ch)
 
 				//重置获胜记录和其他信息
 				g.winner = ""
@@ -1542,20 +1543,30 @@ func (g *Game) ShowGameMsg(screen *ebiten.Image) {
 		return
 	}
 	str := ""
-	str += fmt.Sprintf("result：%s. ", g.gameMsg.Event)
+	str += fmt.Sprintf("结果：%s. ", g.gameMsg.Event)
+
 	if len(g.gameMsg.WonChessmanCode) > 0 {
-		str += fmt.Sprintf("capture：%s. ", g.gameMsg.WonChessmanCode)
+		str += fmt.Sprintf("吃棋：%s. ", g.gameMsg.WonChessmanCode)
 	}
 
 	if len(g.gameMsg.Msg) > 0 {
-		str += fmt.Sprintf("msg：%s. ", g.gameMsg.Msg)
+		str += fmt.Sprintf("消息：%s. ", g.gameMsg.Msg)
 	}
 
 	if g.gameMsg.WonGroup > 0 {
-		str += fmt.Sprintf("game over，winner：%s. ", g.gameMsg.WonChessmanCode)
+		str += fmt.Sprintf("对局结束，胜：%s. ", g.gameMsg.WonGroup)
 	}
 
-	ebitenutil.DebugPrintAt(screen, str, g.boardLogicZeroPoint.x, g.boardLogicZeroPoint.y+9*gridLength+30)
+	f := &text.GoTextFace{
+		Source:    hanziFaceSource,
+		Direction: text.DirectionLeftToRight,
+		Size:      24,
+		//Language:  language.Chinese,
+	}
+	op := &text.DrawOptions{}
+	op.GeoM.Translate(float64(g.boardLogicZeroPoint.x), float64(g.boardLogicZeroPoint.y+9*gridLength+30))
+	text.Draw(screen, str, f, op)
+	//ebitenutil.DebugPrintAt(screen, str, g.boardLogicZeroPoint.x, g.boardLogicZeroPoint.y+9*gridLength+30)
 }
 
 // 根据阵营获取玩家信息
@@ -1576,7 +1587,18 @@ func (g *Game) drawWinner(screen *ebiten.Image) {
 	winLogoY := g.boardLogicZeroPoint.y + 3*g.gridLength
 	op.GeoM.Translate(float64(winLogoX), float64(winLogoY))
 	screen.DrawImage(ebitenWinImage, op)
-	ebitenutil.DebugPrintAt(screen, g.winner, winLogoX+2*g.gridLength, winLogoY+3*g.gridLength)
+
+	//ebitenutil.DebugPrintAt(screen, g.winner, winLogoX+2*g.gridLength, winLogoY+3*g.gridLength)
+
+	f := &text.GoTextFace{
+		Source:    hanziFaceSource,
+		Direction: text.DirectionLeftToRight,
+		Size:      32,
+		//Language:  language.Chinese,
+	}
+	op2 := &text.DrawOptions{}
+	op2.GeoM.Translate(float64(winLogoX+3*g.gridLength/2), float64(winLogoY+3*g.gridLength))
+	text.Draw(screen, g.winner, f, op2)
 
 	//绘制再来一次按钮
 	onceAgainBtn := &onceAgainBtn{

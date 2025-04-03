@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"github.com/CXeon/xiangqi/assets"
 	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2/text/v2"
 	"image"
 	"log"
 )
@@ -79,6 +80,9 @@ var (
 	//onceAgain
 	ebitenOnceAgainBtnImage      *ebiten.Image
 	ebitenOnceAgainBtnAlphaImage *image.Alpha
+
+	//中文字体
+	hanziFaceSource *text.GoTextFaceSource
 )
 
 func init() {
@@ -336,6 +340,14 @@ func init() {
 			for i := bOnceAgainBtn.Min.X; i < bOnceAgainBtn.Max.X; i++ {
 				ebitenOnceAgainBtnAlphaImage.Set(i, j, bOnceAgainBtn.At(i, j))
 			}
+		}
+	}
+
+	{
+		//加载字体
+		hanziFaceSource, err = text.NewGoTextFaceSource(bytes.NewReader(assets.HanziTTF))
+		if err != nil {
+			log.Fatal(err)
 		}
 	}
 }

@@ -415,10 +415,10 @@ func RuleShi(matrix [][]ChessmanInterface, rowGroup map[int]core.ChessmanGroup, 
 		vertical = "DOWN1"
 	}
 	if moveX == 1 {
-		vertical = "LEFT1"
+		horizontal = "LEFT1"
 	}
 	if moveX == -1 {
-		vertical = "RIGHT1"
+		horizontal = "RIGHT1"
 	}
 
 	vh := vertical + horizontal
