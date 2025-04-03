@@ -236,7 +236,7 @@ func (g *Game) Update() error {
 			}
 			//修正坐标
 			x, y := g.revisesCoordinate(ebiten.CursorPosition())
-			fmt.Printf("revisesCoordinate to [%d,%d]\n", x, y)
+			//fmt.Printf("revisesCoordinate to [%d,%d]\n", x, y)
 			coreX, coreY := g.transformCoordinate(x, y)
 			//如果已经有棋子被选中，说明玩家想把棋子移动到选中坐标
 			if g.clickedSprite == nil {
