@@ -1554,7 +1554,7 @@ func (g *Game) ShowGameMsg(screen *ebiten.Image) {
 	}
 
 	if g.gameMsg.WonGroup > 0 {
-		str += fmt.Sprintf("对局结束，胜：%s. ", g.gameMsg.WonGroup)
+		str += fmt.Sprintf("对局结束，胜：%d. ", g.gameMsg.WonGroup)
 	}
 
 	f := &text.GoTextFace{
